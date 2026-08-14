@@ -35,6 +35,12 @@ const CONFIG = {
     "Always by your side",
     "My favourite person",
   ],
+
+  // A short video to include in the slideshow. It plays with its own sound,
+  // and the background music gently ducks while it plays. "" = no video.
+  videoSrc: "video/memory.mp4",
+  videoCaption: "A moment I'll always treasure ❤",
+  videoPosition: "end",   // "end" (after the photos) or "start" (before them)
 };
 /* ==================  END OF EDIT AREA  ================== */
 
@@ -242,37 +248,87 @@ function typeMessage(){
 /* ============================================================
    SCENE 4: SLIDESHOW (auto-advance)
    ============================================================ */
-let slides=[];
+let slides=[], slideKind=[], slideVideos=[], slideCaps=[];
 function buildSlides(){
   const wrap=$("#slides");
+  const caps=CONFIG.slideCaptions||[];
+  const items=[];
   const photos = CONFIG.photos.length ? CONFIG.photos : ["","","",""];
-  photos.forEach((src,i)=>{
+  photos.forEach((src,i)=> items.push({type:"image",src,cap:caps.length?caps[i%caps.length]:""}));
+  // slot the video in at the start or the end
+  if(CONFIG.videoSrc){
+    const vitem={type:"video",src:CONFIG.videoSrc,cap:CONFIG.videoCaption||""};
+    if(CONFIG.videoPosition==="start") items.unshift(vitem); else items.push(vitem);
+  }
+
+  items.forEach((it,i)=>{
     const s=document.createElement("div");
     s.className="slide"+(i===0?" active":"");
-    if(src){
-      s.style.backgroundImage=`url("${src}")`;
-      // If a photo is missing/broken, gracefully fall back to a pretty placeholder.
+    if(it.type==="video"){
+      const v=document.createElement("video");
+      v.className="slide-video-el";
+      v.src=it.src; v.preload="auto"; v.muted=false; v.controls=false;
+      v.playsInline=true; v.setAttribute("playsinline",""); v.setAttribute("webkit-playsinline","");
+      v.addEventListener("error",()=>{ s.classList.add("ph"); s.textContent="🎬"; });
+      s.appendChild(v);
+      slideKind[i]="video"; slideVideos[i]=v;
+    } else if(it.src){
+      // Full photo (contain) over a blurred fill of itself → nothing gets cut.
+      const bg=document.createElement("div"); bg.className="slide-bg"; bg.style.backgroundImage=`url("${it.src}")`;
+      const img=document.createElement("div"); img.className="slide-img"; img.style.backgroundImage=`url("${it.src}")`;
+      s.appendChild(bg); s.appendChild(img);
       const probe=new Image();
-      probe.onerror=()=>{ s.style.backgroundImage="none"; s.classList.add("ph"); s.textContent="Photo "+(i+1); };
-      probe.src=src;
-    } else { s.classList.add("ph"); s.textContent="Photo "+(i+1); }
+      probe.onerror=()=>{ bg.remove(); img.remove(); s.classList.add("ph"); s.textContent="Photo "+(i+1); };
+      probe.src=it.src;
+      slideKind[i]="image"; slideVideos[i]=null;
+    } else {
+      s.classList.add("ph"); s.textContent="Photo "+(i+1);
+      slideKind[i]="image"; slideVideos[i]=null;
+    }
+    slideCaps[i]=it.cap;
     wrap.appendChild(s);
   });
   slides=$$(".slide",wrap);
 }
 async function playSlides(){
-  const cap=$("#slidesCaption"), caps=CONFIG.slideCaptions;
-  function showCap(i){ if(!caps.length)return;
-    cap.textContent=caps[i%caps.length]; cap.classList.remove("show"); void cap.offsetWidth; cap.classList.add("show"); }
-  showCap(0);
+  const cap=$("#slidesCaption");
+  function showCap(i){ const t=slideCaps[i];
+    if(!t){ cap.classList.remove("show"); return; }
+    cap.textContent=t; cap.classList.remove("show"); void cap.offsetWidth; cap.classList.add("show"); }
   const per = 2600*T;
-  for(let i=1;i<slides.length;i++){
-    await wait(per);
-    slides[i-1].classList.remove("active");
-    slides[i].classList.add("active");
+  for(let i=0;i<slides.length;i++){
+    if(i>0){ slides[i-1].classList.remove("active"); slides[i].classList.add("active"); }
     showCap(i);
+    if(slideKind[i]==="video") await playVideoSlide(i);
+    else await wait(per);
   }
-  await wait(per);
+}
+/* Plays the video slide with its own sound; ducks the music, restores it after.
+   Falls back to muted playback if the browser blocks sound, and has a safety
+   timeout so the movie never gets stuck if 'ended' doesn't fire. */
+async function playVideoSlide(i){
+  const v=slideVideos[i];
+  if(!v){ await wait(3000*T); return; }
+  const musicWasOn = audio && !audio.paused && !muted;
+  let restored=false;
+  const restoreMusic=()=>{ if(restored)return; restored=true;
+    if(musicWasOn && audio){ try{ audio.play().catch(()=>{}); }catch(e){} } };
+  if(audio){ try{ audio.pause(); }catch(e){} }   // duck background music
+  try{ v.currentTime=0; }catch(e){}
+  v.muted=false;
+  try{ await v.play(); }
+  catch(e){                                       // sound blocked → show it muted, keep music
+    v.muted=true; restoreMusic();
+    try{ await v.play(); }catch(e2){}
+  }
+  const dur=(isFinite(v.duration)&&v.duration>0)?v.duration:17;
+  await new Promise(res=>{
+    let done=false; const finish=()=>{ if(done)return; done=true; res(); };
+    v.addEventListener("ended", finish, {once:true});
+    setTimeout(finish, (dur+1.4)*1000);
+  });
+  try{ v.pause(); }catch(e){}
+  restoreMusic();
 }
 
 /* ============================================================
