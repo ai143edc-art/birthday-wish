@@ -1,0 +1,3 @@
+Apni behen ke photos yahan daalo: photo1.jpg, photo2.jpg, ...
+Phir script.js mein CONFIG.photos list mein add karo.
+Photo na ho to bhi movie chalegi (placeholder dikhega).
