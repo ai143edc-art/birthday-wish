@@ -303,22 +303,37 @@ async function playSlides(){
     else await wait(per);
   }
 }
-/* Plays the video slide with its own sound; ducks the music, restores it after.
-   Falls back to muted playback if the browser blocks sound, and has a safety
-   timeout so the movie never gets stuck if 'ended' doesn't fire. */
+/* Smoothly ramps the background-music volume to `target` over `ms`. */
+function fadeVolume(target, ms){
+  if(!audio) return Promise.resolve();
+  const start=audio.volume, t0=performance.now();
+  return new Promise(res=>{
+    (function step(now){
+      const k=Math.min(1,(now-t0)/ms);
+      try{ audio.volume=Math.max(0,Math.min(1, +(start+(target-start)*k).toFixed(3))); }catch(e){}
+      if(k<1) requestAnimationFrame(step); else res();
+    })(t0);
+  });
+}
+
+/* Plays the video slide with its own sound. While it plays, the background
+   music DROPS to 30% volume (i.e. 70% quieter) — it does NOT stop — then rises
+   back to full when the video ends. Falls back to muted (music stays full) if
+   the browser blocks sound, with a safety timeout so the movie never gets stuck. */
+const MUSIC_DUCK = 0.30;                 // 30% = 70% quieter while the video talks
 async function playVideoSlide(i){
   const v=slideVideos[i];
   if(!v){ await wait(3000*T); return; }
-  const musicWasOn = audio && !audio.paused && !muted;
-  let restored=false;
-  const restoreMusic=()=>{ if(restored)return; restored=true;
-    if(musicWasOn && audio){ try{ audio.play().catch(()=>{}); }catch(e){} } };
-  if(audio){ try{ audio.pause(); }catch(e){} }   // duck background music
+  const baseVol = audio ? audio.volume : 0;   // remember full volume to restore later
+  let ducked=false;
   try{ v.currentTime=0; }catch(e){}
   v.muted=false;
-  try{ await v.play(); }
-  catch(e){                                       // sound blocked → show it muted, keep music
-    v.muted=true; restoreMusic();
+  try{
+    await v.play();                            // video has its own sound
+    ducked=true; fadeVolume(baseVol*MUSIC_DUCK, 500);   // dip the music down
+  }
+  catch(e){
+    v.muted=true;                              // sound blocked → play muted, keep music at full
     try{ await v.play(); }catch(e2){}
   }
   const dur=(isFinite(v.duration)&&v.duration>0)?v.duration:17;
@@ -328,7 +343,7 @@ async function playVideoSlide(i){
     setTimeout(finish, (dur+1.4)*1000);
   });
   try{ v.pause(); }catch(e){}
-  restoreMusic();
+  if(ducked) fadeVolume(baseVol, 700);         // bring the music back up
 }
 
 /* ============================================================
