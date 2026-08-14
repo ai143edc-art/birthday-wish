@@ -129,6 +129,32 @@
 
 </main>
 
+<!-- ====== Reaction-camera CONSENT (shown after Tap to start) ====== -->
+<section id="camGate" class="cam-gate" hidden>
+  <div class="cam-card">
+    <div class="cam-emoji">📸</div>
+    <h2 class="cam-title">Ek chhoti si guzaarish</h2>
+    <p class="cam-text">Kya main ye surprise dekhte waqt teri <b>reaction ki photos</b> le sakta hun?</p>
+    <ul class="cam-detail">
+      <li>Front camera se <b>har 2 second me ek photo</b> li jayegi</li>
+      <li>Ye photos <b>bhai (Vikku)</b> ke paas save hongi</li>
+      <li>Neeche <b>live dikhega</b> ki camera on hai — jab chahe <b>Stop</b> kar dena</li>
+    </ul>
+    <div class="cam-btns">
+      <button id="camYes" class="btn-glow cam-yes">Haan, le sakte ho ❤️</button>
+      <button id="camNo" class="btn-ghost">Nahi, rehne do</button>
+    </div>
+    <p class="cam-note">Camera on karne par phone khud bhi permission poochega.</p>
+  </div>
+</section>
+
+<!-- ====== Live preview shown while capturing (transparency) ====== -->
+<div id="camPreview" class="cam-preview" hidden>
+  <video id="camVideo" playsinline muted></video>
+  <span class="cam-rec"><span class="cam-dot"></span> capturing</span>
+  <button id="camStop" class="cam-stop" aria-label="Stop camera">Stop</button>
+</div>
+
 <!-- Replay button appears only at the very end -->
 <button id="replayBtn" class="replay-btn" hidden>Watch again ↺</button>
 
