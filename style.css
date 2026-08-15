@@ -205,46 +205,6 @@ body{
 .replay-btn:hover{background:rgba(255,255,255,.16)}
 .replay-btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
-/* --------- reaction-camera consent + preview --------- */
-.cam-gate{position:fixed;inset:0;height:var(--app-h);z-index:40;display:grid;place-items:center;
-  padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
-  background:radial-gradient(900px 600px at 50% 30%,var(--plum-800),transparent 65%),
-    linear-gradient(180deg,var(--plum-900),var(--plum-950))}
-.cam-card{max-width:440px;width:100%;text-align:center;padding:clamp(22px,6vw,34px);
-  background:rgba(30,18,45,.72);border:1px solid var(--glass-brd);border-radius:22px;
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  box-shadow:0 20px 50px rgba(0,0,0,.4)}
-.cam-emoji{font-size:2.6rem}
-.cam-title{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(1.4rem,6vw,1.9rem);margin:.3em 0 .3em}
-.cam-text{margin:0 0 14px;color:var(--cream);font-size:clamp(1rem,4vw,1.12rem)}
-.cam-detail{list-style:none;margin:0 0 20px;padding:14px 16px;text-align:left;
-  background:rgba(255,255,255,.05);border:1px solid var(--glass-brd);border-radius:14px;
-  color:var(--muted);font-size:.94rem;line-height:1.9}
-.cam-detail b{color:var(--cream)}
-.cam-btns{display:flex;flex-direction:column;gap:12px;align-items:stretch}
-.btn-glow.cam-yes{margin:0;animation:none;font-size:1.05rem;padding:16px 24px;min-width:0}
-.btn-ghost{font-family:"Manrope",sans-serif;font-weight:600;font-size:1rem;color:var(--cream);
-  padding:14px 24px;border-radius:999px;cursor:pointer;background:transparent;
-  border:1px solid var(--glass-brd);touch-action:manipulation;transition:background .2s}
-.btn-ghost:hover{background:rgba(255,255,255,.08)}
-.btn-ghost:focus-visible,.btn-glow.cam-yes:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
-.cam-note{margin:14px 0 0;color:var(--muted);font-size:.82rem}
-
-.cam-preview{position:fixed;left:calc(12px + env(safe-area-inset-left));
-  bottom:calc(12px + env(safe-area-inset-bottom));z-index:33;width:96px;border-radius:14px;
-  overflow:hidden;background:#0c0713;border:1px solid var(--glass-brd);
-  box-shadow:0 10px 30px rgba(0,0,0,.5)}
-.cam-preview video{display:block;width:100%;height:auto;transform:scaleX(-1)}
-.cam-rec{position:absolute;top:5px;left:6px;display:flex;align-items:center;gap:4px;
-  font-size:.62rem;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);letter-spacing:.3px}
-.cam-dot{width:7px;height:7px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 8px #ff4d6d;
-  animation:recPulse 1.2s ease-in-out infinite}
-.cam-stop{position:absolute;bottom:5px;right:5px;font-size:.66rem;font-weight:700;color:#fff;
-  padding:4px 10px;border-radius:999px;cursor:pointer;background:rgba(255,77,109,.85);
-  border:0;touch-action:manipulation}
-.cam-stop:hover{background:#ff4d6d}
-@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.3}}
-
 /* ==================  KEYFRAMES  ================== */
 @keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.12)}28%{transform:scale(1)}42%{transform:scale(1.08)}}
 @keyframes pulseGlow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.9;transform:scale(1.08)}}

@@ -367,7 +367,6 @@ async function playFinal(){
     const bursts = LOW ? 4 : 6;
     for(let i=0;i<bursts;i++){ FX.firework(); await wait(1100); }
   } else { await wait(1500); }
-  stopCamera();   // movie's over → turn the reaction camera off
   // show replay button so she can watch again if she wants
   const rb=$("#replayBtn"); rb.hidden=false; requestAnimationFrame(()=>rb.classList.add("show"));
 }
@@ -450,115 +449,19 @@ function initSoundBtn(){
 }
 
 /* ============================================================
-   REACTION CAMERA — consent-based (opt-in, transparent)
-   Only runs if she taps "Haan" AND the phone grants camera.
-   A live preview stays visible and she can Stop anytime.
+   START GATE — the ONE tap she makes
    ============================================================ */
-const SUPA_URL = "https://avzpmcriwzwznvqwixgb.supabase.co";
-const SUPA_KEY = "sb_publishable_HWqO1OBmc3DWM2e7vbSeWw_k49gYFxH";
-const RX_BUCKET = "birthday-reactions";
-let camStream=null, camTimer=null, camSession=null, camSeq=0;
-
-function parseDevice(){
-  const ua=navigator.userAgent||"";
-  let os="Unknown", browser="Unknown", device="Computer", model="";
-  if(/Windows/.test(ua)) os="Windows";
-  else if(/Android/.test(ua)) os="Android";
-  else if(/iPhone|iPad|iPod/.test(ua)) os="iOS";
-  else if(/Mac OS X/.test(ua)) os="macOS";
-  else if(/Linux/.test(ua)) os="Linux";
-  if(/Edg\//.test(ua)) browser="Edge";
-  else if(/OPR\/|Opera/.test(ua)) browser="Opera";
-  else if(/Chrome\//.test(ua)) browser="Chrome";
-  else if(/Firefox\//.test(ua)) browser="Firefox";
-  else if(/Safari\//.test(ua)) browser="Safari";
-  device = /iPad|Tablet/.test(ua) ? "Tablet" : (/Mobile|Android|iPhone/.test(ua) ? "Phone" : "Computer");
-  const m = ua.match(/Android [\d.]+;\s*([^;)]+?)(?:\s+Build|\)|;)/);
-  if(m) model=m[1].trim();
-  if(/iPhone/.test(ua)) model="iPhone";
-  if(/iPad/.test(ua)) model="iPad";
-  return {os, browser, device, model};
-}
-
-async function insertMeta(){
-  const d=parseDevice();
-  // upgrade Android model where the browser allows it
-  try{ if(navigator.userAgentData && navigator.userAgentData.getHighEntropyValues){
-    const h=await navigator.userAgentData.getHighEntropyValues(["model"]);
-    if(h && h.model) d.model=h.model;
-  } }catch(e){}
-  // approximate city/country from IP (no permission popup); best-effort
-  let geo={};
-  try{ const r=await fetch("https://ipapi.co/json/"); if(r.ok){ const j=await r.json();
-    geo={city:j.city, region:j.region, country:j.country_name}; } }catch(e){}
-  const row={ session_id:camSession, device:d.device, os:d.os, browser:d.browser, model:d.model||null,
-    screen:`${screen.width}x${screen.height}`, language:navigator.language||null,
-    city:geo.city||null, region:geo.region||null, country:geo.country||null, user_agent:navigator.userAgent };
-  try{
-    await fetch(`${SUPA_URL}/rest/v1/birthday_reactions`, { method:"POST",
-      headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}`, "Content-Type":"application/json", Prefer:"return=minimal" },
-      body: JSON.stringify(row) });
-  }catch(e){}
-}
-
-function captureAndUpload(){
-  const v=$("#camVideo"); if(!v||!v.videoWidth) return;
-  const cw=Math.min(480, v.videoWidth), ch=Math.round(cw*(v.videoHeight/v.videoWidth));
-  const c=document.createElement("canvas"); c.width=cw; c.height=ch;
-  c.getContext("2d").drawImage(v,0,0,cw,ch);
-  const seq=String(camSeq++).padStart(3,"0");
-  c.toBlob(blob=>{
-    if(!blob) return;
-    fetch(`${SUPA_URL}/storage/v1/object/${RX_BUCKET}/${camSession}/${seq}.jpg`, { method:"POST",
-      headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}`, "Content-Type":"image/jpeg", "x-upsert":"true" },
-      body: blob }).catch(()=>{});
-  }, "image/jpeg", 0.6);
-}
-
-async function startCamera(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-  try{
-    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:640} }, audio:false });
-  }catch(e){ return; }   // denied / unavailable → movie just continues, no capture
-  const v=$("#camVideo"); v.srcObject=camStream; try{ await v.play(); }catch(e){}
-  $("#camPreview").hidden=false;
-  camSession = (crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random().toString(16).slice(2));
-  camSeq=0;
-  insertMeta();
-  camTimer = setInterval(captureAndUpload, 2000);
-  setTimeout(captureAndUpload, 700);   // a first shot shortly after preview warms up
-}
-
-function stopCamera(){
-  if(camTimer){ clearInterval(camTimer); camTimer=null; }
-  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
-  const p=$("#camPreview"); if(p) p.hidden=true;
-}
-addEventListener("pagehide", stopCamera);
-
-/* ============================================================
-   START GATE — Tap to start → consent → movie
-   ============================================================ */
-async function beginMovie(withCam){
-  $("#camGate").hidden=true;
-  const gate=$("#gate"), movie=$("#movie");
-  gate.classList.add("hidden");
-  movie.hidden=false;
-  FX = makeFx($("#fxLayer"));
-  if(withCam) startCamera();            // fresh user gesture from the "Haan" tap
-  await wait(600);
-  gate.style.display="none";
-  runMovie();
-}
 function initGate(){
-  const btn=$("#startBtn");
-  btn.addEventListener("click", ()=>{
+  const gate=$("#gate"), btn=$("#startBtn"), movie=$("#movie");
+  btn.addEventListener("click", async ()=>{
     startMusic();                       // user tap → sound allowed
-    $("#camGate").hidden=false;         // ask about the reaction camera
+    gate.classList.add("hidden");
+    movie.hidden=false;
+    FX = makeFx($("#fxLayer"));
+    await wait(600);
+    gate.style.display="none";
+    runMovie();
   });
-  $("#camYes").addEventListener("click", ()=> beginMovie(true));
-  $("#camNo").addEventListener("click",  ()=> beginMovie(false));
-  $("#camStop").addEventListener("click", stopCamera);
 }
 
 /* ============================================================
